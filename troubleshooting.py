@@ -4,25 +4,6 @@
 # -*- coding: utf-8 -*-
 import subprocess
 
-#class Node:
-#    """
-#      
-#    """
-#    hostname = None
-#    ip = None
-#    role = None
-#    OS = None
-#
-#    def __parse(self, line):
-#        return ' '.join(line.split())
-#
-#    def __init__(self, line):
-#        node_info = line.split('|')
-#        self.hostname = self.__parse(node_info[0])
-#        self.ip = self.__parse(node_info[1])
-#        self.role = self.__parse(node_info[2])
-#        self.OS = self.__parse(node_info[3])
-
 class Cluster:
     """
         Cluster's describe:
@@ -70,9 +51,7 @@ class Cluster:
         node_data = subprocess.Popen(get_nodes_data, shell=True, stdout=subprocess.PIPE)
         node_out = node_data.stdout.readlines()
         for i in xrange(2, len(node_out)-2):
-#            tmp.append(self.__parse(node_out[i]))
-            raw = self.__parse(node_out[i])                        
-#        for raw in tmp:
+            raw = self.__parse(node_out[i])
             if raw[0] not in self.nodes:
                 self.nodes[raw[0]] = {}
             if 'ip' not in self.nodes[raw[0]]:
