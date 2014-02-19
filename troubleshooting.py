@@ -112,6 +112,8 @@ def show_cluster_info():
 
 def main():
     cluster = Cluster(show_cluster_info())
+    # save information in the file. 
+    # file is saved in directory where script is. 
     try:
         yaml_cluster = open('cluster_info.yaml', 'w')
         yaml_cluster.write(yaml.dump(cluster.get_cluster_info()))
