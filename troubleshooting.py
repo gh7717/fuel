@@ -57,16 +57,20 @@ class Cluster:
 
        cluster_info =  yaml.safe_load(cluster_data[2])
        self.libvirt_type = cluster_info['common']['libvirt_type']['value']
+       n = {}
+       n['storages'] = {}
        for line in cluster_info['storage']:
            try:
-               #self.storages[line] = cluster_info['storage'][line]
-               self.storages[line] = (cluster_info['storage'][line]['value'])
+               #self.storages[line] = cluster_info['storage'][line]['value']
+                tmp = cluster_info['storage'][line]['value']
+                n[line] = tmp
            except:
-               self.storages[line] = cluster_info['storage'][line]['value']
+               self.storages[line] = cluster_info['storage'][line]
+       self.storages = n.copy()
 
     def get_cluster_info(self):
         nodes_info = self.get_node_info (self.id)
-        cluster_info = {'ID':self.id, 'Name':self.name, 'Mode':self.mode, 'Network type':self.net_provider, 'Segmentation type':self.net_segment_type,'storages_type':self.storages, 'nodes':self.nodes}
+        cluster_info = {'ID':self.id, 'Name':self.name, 'Mode':self.mode, 'Network type':self.net_provider, 'Segmentation type':self.net_segment_type, 'nodes':self.nodes, 'storages':self.storages}
         return cluster_info
 
 
