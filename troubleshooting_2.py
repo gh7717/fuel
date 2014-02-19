@@ -34,15 +34,26 @@ def get_info_node(cluster):
     nodes = {}
     for node in cluster['nodes']:
         #print node['name'],' - ' , node['role']
-        try:    
-            nodes[node['name']]['management_ip'] = node['internal_address']
-            nodes[node['name']]['roles'].append(node['role'])
+        try:
+            nodes[node['fqdn']]['ip'] = ""
+            nodes[node['fqdn']]['roles'].append(node['role'])
+            nodes[node['fqdn']]['name'] = node['name']
         except:
-            nodes[node['name']] = {'management_ip':node['internal_address'], 'roles':[node['role']]}
-    print nodes
+            nodes[node['fqdn']] = {'management_ip':node['internal_address'], 'roles':[node['role']]}
+    try:
+        dnsmasq = open('/etc/dnsmasq.conf', 'r')
+        for line in dnsmasq.readlines():
+            info = line.split(',')
+            if len(info) == 4:
+                if info[2] in nodes:
+                    nodes[info[2]]['ip'] = ' '.join(info[3].split())
+    except IOError:
+        print "Input/Output errors"
+    return nodes
+
 def main():
     info = get_info_cluster()
-    get_info_node(info)
+    print get_info_node(info)
 
 if __name__ == "__main__":
         main()
