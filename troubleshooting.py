@@ -13,6 +13,7 @@ class Cluster:
         type of deployment: HA or multinede
         network's type: Nova network, Neutrone
         segmentation: GRE or VLAN
+        all backends
         nodes
     """
     id = 0
@@ -54,7 +55,7 @@ class Cluster:
        get_cluster_data_additional = 'sudo -u postgres -H -- psql -d nailgun -c "select editable from attributes where cluster_id = %d;"' % id
        cluster_data = subprocess.Popen(get_cluster_data_additional, shell=True, stdout=subprocess.PIPE)
        cluster_data = cluster_data.stdout.readlines()
-
+       # parse yaml 
        cluster_info =  yaml.safe_load(cluster_data[2])
        self.libvirt_type = cluster_info['common']['libvirt_type']['value']
        n = {}
@@ -67,6 +68,7 @@ class Cluster:
            except:
                self.storages[line] = cluster_info['storage'][line]
        self.storages = n.copy()
+       print self.storages
 
     def get_cluster_info(self):
         nodes_info = self.get_node_info (self.id)
@@ -105,7 +107,7 @@ def show_cluster_info():
 def main():
     cluster = Cluster(show_cluster_info())
     print yaml.dump(cluster.get_cluster_info())
-   
+ 
 
 if __name__ == "__main__":
 	main()
