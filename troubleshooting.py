@@ -4,6 +4,7 @@
 # -*- coding: utf-8 -*-
 import subprocess
 import yaml
+import sys
 
 class Cluster:
     """
@@ -45,11 +46,15 @@ class Cluster:
        # chose and parse line describe cluster
        cluster_info = self.__parse(cluster_data[2])
        # set informations about cluster
-       self.id = int(cluster_info[0])
-       self.name = cluster_info[1]
-       self.mode = cluster_info[2]
-       self.net_provider = cluster_info[3]
-       self.net_segment_type = cluster_info[4]
+       try:
+           self.id = int(cluster_info[0])
+           self.name = cluster_info[1]
+           self.mode = cluster_info[2]
+           self.net_provider = cluster_info[3]
+           self.net_segment_type = cluster_info[4]
+       except:
+           print "Environment ID not found"
+           sys.exit(1)
 
         # get additional cluster's data
        get_cluster_data_additional = 'sudo -u postgres -H -- psql -d nailgun -c "select editable from attributes where cluster_id = %d;"' % id
@@ -96,16 +101,25 @@ class Cluster:
 
 def show_cluster_info():
     cluster_data = subprocess.call ('sudo -u postgres -H -- psql -d nailgun -c "select id, name, mode,net_provider, net_segment_type from clusters;"', shell=True)
-    try: 
+    try:
         env_id = int(raw_input ('Enter environment ID for troubleshooting:'))
     except ValueError:
         print "Error in ID's enveronmenti: it is not number"
+        sys.exit(1)
     except IOError:
         print "Input error"
+        sys.exit(1)
     return env_id
 
 def main():
     cluster = Cluster(show_cluster_info())
+    try:
+        yaml_cluster = open('cluster_info.yaml', 'w')
+        yaml_cluster.write(yaml.dump(cluster.get_cluster_info()))
+        yaml_cluster.close()
+    except IOError:
+        print "Input/output error"
+        sys.exit(1)
     print yaml.dump(cluster.get_cluster_info())
  
 
