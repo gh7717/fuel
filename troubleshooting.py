@@ -3,6 +3,7 @@
 #:set tabstop=4 :set shiftwidth=4 :set smarttab :set explandtab
 # -*- coding: utf-8 -*-
 import subprocess
+import yaml
 
 class Cluster:
     """
@@ -19,7 +20,13 @@ class Cluster:
     mode = None
     net_provider = None
     net_segment_type = None
+    libvirt_type = None
+    storages = {}
     nodes = {}
+    def __parse(self, line): pass
+    def __init__(self, id): pass
+    def get_cluster_info(self): pass
+    def get_node_info(self, env_id): pass
 
     def __parse(self, line):
         data = line.split('|')
@@ -28,7 +35,7 @@ class Cluster:
         return data
 
     def __init__(self, id):
-    # get cluster's info
+       # get cluster's info
        get_cluster_data = 'sudo -u postgres -H -- psql -d nailgun -c \"select id, name, mode,net_provider, net_segment_type from clusters where id = %d;\"' % id
        cluster_data = subprocess.Popen(get_cluster_data, shell=True, stdout=subprocess.PIPE)
 
@@ -42,9 +49,26 @@ class Cluster:
        self.mode = cluster_info[2]
        self.net_provider = cluster_info[3]
        self.net_segment_type = cluster_info[4]
-    
+
+        # get additional cluster's data
+       get_cluster_data_additional = 'sudo -u postgres -H -- psql -d nailgun -c "select editable from attributes where cluster_id = %d;"' % id
+       cluster_data = subprocess.Popen(get_cluster_data_additional, shell=True, stdout=subprocess.PIPE)
+       cluster_data = cluster_data.stdout.readlines()
+
+       cluster_info =  yaml.safe_load(cluster_data[2])
+       self.libvirt_type = cluster_info['common']['libvirt_type']['value']
+       for line in cluster_info['storage']:
+           try:
+               #self.storages[line] = cluster_info['storage'][line]
+               self.storages[line] = (cluster_info['storage'][line]['value'])
+           except:
+               self.storages[line] = cluster_info['storage'][line]['value']
+
     def get_cluster_info(self):
-       return {'ID':self.id, 'Name':self.name, 'Mode':self.mode, 'Network type':self.net_provider, 'Segmentation type':self.net_segment_type}
+        nodes_info = self.get_node_info (self.id)
+        cluster_info = {'ID':self.id, 'Name':self.name, 'Mode':self.mode, 'Network type':self.net_provider, 'Segmentation type':self.net_segment_type,'storages_type':self.storages, 'nodes':self.nodes}
+        return cluster_info
+
 
     def get_node_info(self, env_id):
         get_nodes_data = 'sudo -u postgres -H -- psql -d nailgun -c \"select nodes.fqdn,nodes.ip, roles.name, nodes.os_platform from nodes, roles, node_roles where node_roles.node = nodes.id and node_roles.role = roles.id and nodes.cluster_id = %d;\"' % env_id
@@ -64,7 +88,7 @@ class Cluster:
 
 
 
-def get_cluster_info():
+def show_cluster_info():
     cluster_data = subprocess.call ('sudo -u postgres -H -- psql -d nailgun -c "select id, name, mode,net_provider, net_segment_type from clusters;"', shell=True)
     try: 
         env_id = int(raw_input ('Enter environment ID for troubleshooting:'))
@@ -75,10 +99,8 @@ def get_cluster_info():
     return env_id
 
 def main():
-    cluster = Cluster(get_cluster_info())
-    print cluster.get_cluster_info()
-    cluster.get_node_info(cluster.id)
-    print cluster.nodes
+    cluster = Cluster(show_cluster_info())
+    print yaml.dump(cluster.get_cluster_info())
    
 
 if __name__ == "__main__":
