@@ -98,7 +98,6 @@ class Cluster:
             self.nodes[raw[0]]['roles'].append(raw[2])
 
 
-
 def show_cluster_info():
     cluster_data = subprocess.call ('sudo -u postgres -H -- psql -d nailgun -c "select id, name, mode,net_provider, net_segment_type from clusters;"', shell=True)
     try:
