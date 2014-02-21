@@ -60,7 +60,11 @@ def getClusterInfo(id):
                 print "Cluster ID error"
                 sys.exit (1)
     attributes = curlRequest('http://127.0.0.1:8000/api/v1/clusters/%d/attributes/' % id)
-    cluster_attributes = attributes['editable']
+    try:
+        cluster_attributes = attributes['editable']
+    except:
+        print "Incorect cluster date"
+        sys.exit(1)
 
     cluster_info['libvirt_type'] = cluster_attributes['common']['libvirt_type']['value']
     for line in cluster_attributes['storage']:
@@ -87,9 +91,22 @@ def chooseCluster():
         print "ID is not number"
         sys.exit(1)
 
+def saveClusterInfo(cluster):
+    try:
+        f = open('cluster.yaml', 'w')
+        f.write(yaml.safe_dump(cluster, default_flow_style=False))
+        f.close()
+    except IOError:
+        print "Input/output error"
+        sys.exit(1)
+
+def getServiceInfo(cluster):
+    pass
+
 def main():
     id = chooseCluster()
-    print yaml.safe_dump(getClusterInfo(id), default_flow_style=False)
+    cluster = getClusterInfo(id)
+    saveClusterInfo(cluster)
 
 if __name__ == "__main__":
     main()
