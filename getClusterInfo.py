@@ -21,7 +21,18 @@ def curlRequest(url):
         info.close()
     except ValueError:
         print "Error: %s - not found" %url
-    return yaml.load(t.contents) 
+    return yaml.load(t.contents)
+
+def getNodesInfo(id):
+    nodes = curlRequest('http://127.0.0.1:8000/api/v1/nodes')
+    nodes_info = []
+    for node in nodes:
+        node_info = {}
+        node_info['fqdn'] = node['fqdn']
+        node_info['ip'] = node['ip']
+        node_info['roles'] = node['roles']
+        nodes_info.append(node_info)
+    return nodes_info
 
 def getClusterInfo(id):
 
@@ -32,7 +43,7 @@ def getClusterInfo(id):
     cluster_info = {}
 
     for cluster in clusters:
-        if int (cluster['id']) != id: 
+        if int (cluster['id']) != id:
             continue
         else:
             try:
@@ -57,6 +68,8 @@ def getClusterInfo(id):
              cluster_info['attributes'][line] = cluster_attributes['storage'][line]['value']
         except:
              cluster_info['attributes'][line] = cluster_attributes['storage'][line]
+    
+    cluster_info['nodes'] = getNodesInfo(id)
 
     return cluster_info
 
