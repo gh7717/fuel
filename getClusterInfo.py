@@ -4,6 +4,8 @@ import subprocess
 import sys
 import yaml
 import pycurl
+import ssh
+import os
 
 def curlRequest(url):
     class ContentCallback:
@@ -23,21 +25,35 @@ def curlRequest(url):
         print "Error: %s - not found" %url
     return yaml.load(t.contents)
 
+def parse(info):
+    info_out = []
+    for i in info:
+         info_out.append((' '.join(i.split())).split(' '))
+    return info_out
+
 def getNodesInfo(id):
     nodes = curlRequest('http://127.0.0.1:8000/api/v1/nodes')
     nodes_info = []
     for node in nodes:
-        node_info = {}
-        node_info['fqdn'] = node['fqdn']
-        node_info['ip'] = node['ip']
-        node_info['roles'] = node['roles']
-        nodes_info.append(node_info)
+        if not(node['cluster'] is  None) and (int(node['cluster']) == id):
+            node_info = {}
+            node_info['fqdn'] = node['fqdn']
+            node_info['ip'] = node['ip']
+            node_info['roles'] = node['roles']
+            node_info['network_data'] = node['network_data']
+            node_info['disk'] = {}
+            for disk in node['meta']['disks']:
+                 node_info['disk'][disk['name']] = str(float(disk['size']) / (1024*1024*1024))+'G'
+            tmp =  parse(ssh.ssh(node_info['fqdn'], 'df -h'))
+            for i in xrange(1, len(tmp)):
+                if len(tmp[i]) == 6:
+                    node_info['disk'][tmp[i][-1]] = tmp[i][3]
+                elif len(tmp[i]) == 5: # glance-image - bug (????)
+                    node_info['disk'][tmp[i][-1]] = tmp[i][2]
+            nodes_info.append(node_info)
     return nodes_info
 
 def getClusterInfo(id):
-
-    #safe_dump - output without tag "!!python/unicode"
-    #print yaml.safe_dump(curlRequest('http://127.0.0.1:8000/api/v1/clusters/'))
 
     clusters = curlRequest('http://127.0.0.1:8000/api/v1/clusters/')
     cluster_info = {}
@@ -92,13 +108,44 @@ def chooseCluster():
         sys.exit(1)
 
 def saveClusterInfo(cluster):
+    if not os.path.isdir('cluster'):
+        os.mkdir('cluster')
     try:
-        f = open('cluster.yaml', 'w')
+        f = open('./cluster/cluster.yaml', 'w')
         f.write(yaml.safe_dump(cluster, default_flow_style=False))
         f.close()
+        os.mkdir
     except IOError:
         print "Input/output error"
         sys.exit(1)
+    for node in cluster['nodes']:
+        if not os.path.isdir('./cluster/%s'%node['fqdn']):
+            os.mkdir('./cluster/%s'%node['fqdn'])
+        try:
+            f = open('./cluster/%s/hardware.out'%node['fqdn'], 'w')
+            f.write('dmidecode -t system\n')
+            #f.write(str(ssh.ssh(node['fqdn'], 'dmidecode -t system')))
+            tmp = ssh.ssh(node['fqdn'], 'dmidecode -t system')
+            for i in tmp:
+                f.write(' '.join(i.split()))
+                f.write('\n')
+            f.write('dmidecode -t bios\n')
+            #f.write(str(ssh.ssh(node['fqdn'], 'dmidecode -t bios')))
+            tmp = ssh.ssh(node['fqdn'], 'dmidecode -t bios')
+            for i in tmp:
+                f.write(' '.join(i.split()))
+                f.write('\n')
+            f.write('lspci\n')
+            #f.write(str(ssh.ssh(node['fqdn'], 'lscpi')))
+            tmp = ssh.ssh(node['fqdn'], 'lspci')
+            for i in tmp:
+                f.write(' '.join(i.split()))
+                f.write('\n')
+            
+        except IOError:
+            print "Input/output error"
+            sys.exit(1)
+
 
 def getServiceInfo(cluster):
     pass
